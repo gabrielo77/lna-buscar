@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 
-# TODO: agregar la capacidad de saltar un pipe.
-# Hay que reescribir las funciones de los colores, 
-# armar una sola que reciba 3 parametros (el string, 
-# el color y si va en negrita o no), y armar variables 
-# globales para manejar eso. Con esto me fijo si estoy 
-# antes de un pipe o no:
-# echo $$; ls -l /proc/$$/fd/1
+set -eu
 
 if [ "$#" -lt 1 ]
 then
@@ -14,32 +8,33 @@ then
     exit 1
 fi
 
+MY_PID=$$
 LNA_DIR=/home/gabriel/Documents/radios/La_Nota_Azul
 TEMPFILE=$(tempfile)
 WC_TEMPFILE=$(tempfile)
 WATCH_ARRAY=( [0]='\b|' [1]='\b/' [2]='\b-' [3]='\b\' )
-let POS=0
+POS=0 # POS is the position in the array above, the subscript
+STDOUT_POINTS_PIPE=$(ls -l /proc/$MY_PID/fd/1 | grep -i pipe | wc -l)
+
+set -o pipefail
 
 echo-ne () { echo -ne $*; }
 
 buscar=$*
-#for i in "$@"
-#do 
-#    buscar+="$i "
-#done 
-#aca le quito el ultimo espacio en blanco
-#let len=${#buscar}-1
-#buscar=${buscar:0:$len}
 
 busqueda () {
 # BAD HACK: el {1..1000} es para que salga ordenado por fecha. 
 # *HAY* que cambiarlo para que sea dinámico, pero sin tener que 
-# buscar en todos los números de programas.
+# buscar en todos los números de programas. En realidad ahora
+# que lo pienso parece imposible, mejor dejarlo asi, no creo 
+# que llegue a los 1000 programas je.
 # BAD HACK: chequear una forma de pasar la variable LNA_DIR a 
 # awk para no tener que hacer ese doble matcheo, creo que puede
-# ser la opción -v.
+# ser la opción -v. Aunque por otro lado el doble matcheo sirve
+# para no complicar la salida de las fechas y programas.
+# TODO: crear una sola funcion que imprima los colores.
 
-    grep -EIis "$buscar"'.*se pasó' "${LNA_DIR}"/programa{1..1000}/* | awk -F " - " \
+    grep -EIis "$buscar"'.*se pasó' "${LNA_DIR}"/programa{1..1000}/* | awk -F " - " -v PIPE=$STDOUT_POINTS_PIPE \
     '
         function red(s) {
             printf "\033[2;31m" s "\033[0m "
@@ -86,13 +81,23 @@ busqueda () {
         }
 
         {
-        if (match($0, /[0-9]{6}/, A) && match($0, /programa[0-9]+/, J)) print\
-                red("Programa N°: ") red_bold(substr(J[0], 9))\
-                blue("\nFecha: ") blue_bold(substr(A[0], 0, 2)"/"substr(A[0], 3, 2)"/"substr(A[0], 5))\
+        if (match($0, /[0-9]{6}/, DATE) && match($0, /programa[0-9]+/, PROGRAM)) 
+            { 
+            if (PIPE == 0) print\
+                red("Programa N°: ") red_bold(substr(PROGRAM[0], 9))\
+                blue("\nFecha: ") blue_bold(substr(DATE[0], 0, 2)"/"substr(DATE[0], 3, 2)"/"substr(DATE[0], 5))\
                 green("\nCanción: ") green_bold($2)\
                 light_blue("\nArtista: ") light_blue_bold($3)\
                 magenta("\nDisco: ") magenta_bold($4)\
-                white_bold("\n---------------------------------")
+                white_bold("\n-------------------------------------------------")
+            else print\
+                "Programa N°: " substr(PROGRAM[0], 9)\
+                "\nFecha: " substr(DATE[0], 0, 2)"/"substr(DATE[0], 3, 2)"/"substr(DATE[0], 5)\
+                "\nCanción: " $2\
+                "\nArtista: " $3\
+                "\nDisco: " $4\
+                "\n-------------------------------------------------"
+            }
         }
     ' | tee $TEMPFILE | wc -l
 }
@@ -109,13 +114,24 @@ do
     [ "$POS" -le 3 ] || let POS=0
 done
 
+if [ $STDOUT_POINTS_PIPE -eq 0 ]
+then
+    red='\033[2;31m'
+    goback='\033[0m'
+    green='\033[2;32m'
+else
+    red=''
+    goback=''
+    green=''
+fi
+
 total_lines=$(cat $WC_TEMPFILE)
 if [ $total_lines -eq 0 ]
 then 
-    echo -e '\b\033[2;31mNothing found :(\033[0m'
+    echo -e '\b'$red'Nothing found :('$goback
 else
     let found=${total_lines}/6
-    echo -e "\b\033[2;32mDone! Found ${found} coincidences:\033[0m\n"
+    echo -e '\b'$green"Done! Found ${found} coincidences:"$goback'\n'
     cat $TEMPFILE 
 fi
 
