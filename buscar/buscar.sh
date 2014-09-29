@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eu
+#set -eu
 
 if [ "$#" -lt 1 ]
 then
@@ -16,7 +16,7 @@ WATCH_ARRAY=( [0]='\b|' [1]='\b/' [2]='\b-' [3]='\b\' )
 POS=0 # POS is the position in the array above, the subscript
 STDOUT_POINTS_PIPE=$(ls -l /proc/$MY_PID/fd/1 | grep -i pipe | wc -l)
 
-set -o pipefail
+#set -o pipefail
 
 echo-ne () { echo -ne $*; }
 
@@ -128,7 +128,7 @@ fi
 total_lines=$(cat $WC_TEMPFILE)
 if [ $total_lines -eq 0 ]
 then 
-    echo -e '\b'$red'Nothing found :('$goback
+    echo -e '\b'$red'Nothing found :<('$goback
 else
     let found=${total_lines}/6
     echo -e '\b'$green"Done! Found ${found} coincidences:"$goback'\n'
