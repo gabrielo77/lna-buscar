@@ -1,0 +1,6 @@
+TODO list:
+==========
+
++ Opción para indicar el directorio de búsqueda.
+
++ Opción para indicar separador de columnas.
