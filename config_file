@@ -1,5 +1,0 @@
-[DEFAULT]
-to_listen_file = para_escuchar
-lna_dir = /home/gabriel/Documents/radios/La_Nota_Azul
-program_dir = programaN
-new_file = lista_de_temas
