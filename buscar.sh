@@ -14,7 +14,9 @@ TEMPFILE=$(tempfile)
 WC_TEMPFILE=$(tempfile)
 WATCH_ARRAY=( [0]='\b|' [1]='\b/' [2]='\b-' [3]='\b\' )
 POS=0 # POS is the position in the array above, the subscript
-STDOUT_POINTS_PIPE=$(ls -l /proc/$MY_PID/fd/1 | grep -i pipe | wc -l)
+# detect if tty is attached to stdout
+test -t 1
+STDOUT_POINTS_PIPE=$?
 
 #set -o pipefail
 
